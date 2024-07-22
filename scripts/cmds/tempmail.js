@@ -1,59 +1,49 @@
-const axios = require('axios');
+const axios = require("axios");
+
 module.exports = {
   config: {
     name: "tempmail",
-    version: "1.0",
+    aliases: [`tm`],
+    version: "1.0.0",
+    author: "UPoL | ArYAN",//re-modify by Aryan
     role: 0,
-    countdown: 5,
-    author: "Rehat86 | @Turtle APIs",
-    longDescription: "Create temporary email and check inbox messages",
-    category: "media",
+    countDown: 5,
+    longDescription: {
+      en: "Generate temporary email and check inbox"
+    },
+    category: "email",
+    guide: {
+      en: "{p}tempmail <subcommand>\n\nFor Example:\n{p}tempmail gen\n{p}tempmail inbox <tempmail>",
+      vi: "{p}tempmail <lệnh con>\n\nVí dụ:\n{p}tempmail gen\n{p}tempmail inbox <email tạm thời>"
+    }
   },
-
-  onStart: async ({ api, event, args }) => {
+  onStart: async function ({ api, event, args }) {
     try {
-      if (!args[0]) {
-        return api.sendMessage("❌ Please specify 'inbox' or 'create' as the first argument.", event.threadID);
-      }
-
-      const command = args[0].toLowerCase();
-
-      if (command === 'inbox') {
-        const emailAddress = args[1];
-        if (!emailAddress) {
-          return api.sendMessage("Please provide an email address for the inbox.", event.threadID, event.messageID);
+      if (args[0].toLowerCase() === "gen") {
+        const response = await axios.get("https://king-aryanapis.onrender.com/api/tempmail/get");
+        const responseData = response.data.tempmail;
+        api.sendMessage(`📮 | 𝗧𝗲𝗺𝗽𝗺𝗮𝗶𝗹\n━━━━━━━━━━━━━\n\n𝖧𝖾𝗋𝖾 𝗂𝗌 𝗒𝗈𝗎𝗋 𝗀𝖾𝗇𝖾𝗋𝖺𝗍𝖾𝖽 𝗍𝖾𝗆𝗉𝗆𝖺𝗂𝗅\n\n📍 | 𝗘𝗺𝗮𝗶𝗹\n➤ ${responseData}`, event.threadID, event.messageID);
+      } else if (args[0].toLowerCase() === "inbox" && args.length === 2) {
+        const email = args[1];
+        try {
+          const response = await axios.get(`https://king-aryanapis .onrender.com/api/tempmail/inbox?email=${email}`);
+          const data = response.data;
+          if (data.length === 0) {
+            api.sendMessage("📭 | 𝗜𝗻𝗯𝗼𝘅 𝗠𝗲𝘀𝘀𝗮𝗴𝗲\n━━━━━━━━━━━━━━━\n\n𝖸𝗈𝗎𝗋 𝗍𝖾𝗆𝗉𝗆𝖺𝗂𝗅 𝗂𝗇𝗉𝗈𝗑 𝗂𝗌 𝖼𝗎𝗋𝗋𝖾𝗇𝗍𝗅𝗒 𝖾𝗆𝗉𝗍𝗒.", event.threadID, event.messageID);
+          } else {
+            const inboxMessages = data.map(({ from, subject, body, date }) => `📬 | 𝗧𝗲𝗺𝗽𝗺𝗮𝗶𝗹 𝗜𝗻𝗯𝗼𝘅\n━━━━━━━━━━━━━━━\n\n🔎 𝗙𝗿𝗼𝗺\n${from}\n📭 𝗦𝘂𝗯𝗷𝗲𝗰𝘁\n➤ ${subject || 'Not Found'}\n\n📝 𝗠𝗲𝘀𝘀𝗮𝗴𝗲\n➤ ${body}\n🗓 𝗗𝗮𝘁𝗲\n➤ ${date}`).join('\n\n');
+            api.sendMessage(inboxMessages, event.threadID, event.messageID);
+          }
+        } catch (error) {
+          console.error("🔴 Error", error);
+          api.sendMessage("❌ | Can't retrieve emails. Please try again later.", event.threadID, event.messageID);
         }
-
-        const inboxResponse = await axios.get(`https://api-turtle.onrender.com/api/mail/${emailAddress}`);
-        const messages = inboxResponse.data;
-
-        if (!messages || messages.length === 0) {
-          return api.sendMessage(`No messages found for ${emailAddress}.`, event.threadID, event.messageID);
-        }
-
-        let messageText = '📬 Inbox Messages: 📬\n\n';
-        for (const message of messages) {
-          messageText += `📧 Sender: ${message.from}\n`;
-          messageText += `📑 Subject: ${message.subject || 'Empty'}\n`;
-          messageText += `📩 Message: ${message.body}\n`;
-        }
-
-        api.sendMessage(messageText, event.threadID);
-      } else if (command === 'create') {
-        const tempMailResponse = await axios.get("https://api-turtle.onrender.com/api/mail/create");
-        const tempMailData = tempMailResponse.data;
-
-        if (!tempMailData.email) {
-          return api.sendMessage("Failed to generate temporary email.", event.threadID, event.messageID);
-        }
-
-        api.sendMessage(`📩 𝖧𝖤𝖱𝖤 𝖸𝖮𝖴𝖱 𝖦𝖤𝖭𝖤𝖱𝖠𝖳𝖤𝖣 𝖳𝖤𝖬𝖯𝖬𝖠𝖨𝖫 𝖥𝖱𝖮𝖬 𝖠𝖭𝖲𝖤𝖫\n 𝖤𝖬𝖠𝖨𝖫➪: ${tempMailData.email}`, event.threadID, event.messageID);
       } else {
-        return api.sendMessage("Please specify 'inbox' or 'create'.", event.threadID, event.messageID);
+        api.sendMessage("❌ | Use 'Tempmail gen' to generate email and 'Tempmail inbox {email}' to check inbox emails.", event.threadID, event.messageID);
       }
     } catch (error) {
-      console.error('Error:', error);
-      api.sendMessage("An error occurred.", event.threadID, event.messageID);
+      console.error("❌ | Error", error);
+      api.sendMessage("❌ | An error occurred. Please try again later.", event.threadID, event.messageID);
     }
   }
 };
